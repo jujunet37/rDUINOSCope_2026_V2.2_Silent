@@ -31,6 +31,9 @@ Wire as shown in the diagram.
 - Let the unused pins unplugged, and put a wire to supply the 3.3V pin from the Arduino source.
 - Set the drivers to 1.5V.
 To set the drivers : Measure the voltage between VREF and GND with no motors plugged, and adjust voltage with the screw.
+
+YouTube video link : https://www.youtube.com/watch?v=LmjZzCkUyhM
+
 ---
 
 # 
