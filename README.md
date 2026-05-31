@@ -12,12 +12,12 @@
 
 * This new version need a hardware modification. It uses TMC2209 instead of DRV8825, which make the motors much more quiter.
 * Joystick re-leveling, addition of very low speed manual mode.
-* Modification of Timer periodRA and DEC for motor speeds in GOTO for these new drivers.
+* Modification of periodRA and DEC Timers to adjust motor speeds for these new drivers.
 * Reversing motor polarity for rotation in the correct direction for these new drivers.
 * Microstepping sequence moved from 1-2-4-8-16 to 8-4-16-32 for compatibility with these new drivers.
 * Review of deceleration mode
 * Bug fix : displayed the chain of the previous pointed-to object when loaded an object from bright star catalog : corrected.
-
+* Speed adjusted because of lower precision on these drivers. Now 90% of "2.0 Big Update" version and 70% of "2.1 ASCOM" version, still 180% of the initial version without full step speed.
 
 
 #### 
