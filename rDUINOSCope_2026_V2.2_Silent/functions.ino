@@ -181,10 +181,21 @@ if (objects == 1) {
     char* i1 = strchr(objData, ';');
     char* i2 = strchr(i1 + 1, ';');
     char* i3 = strchr(i2 + 1, ';');
-    char* i4 = strchr(i3 + 1, ';');
-    char* i5 = strchr(i4 + 1, ';');
-    char* i6 = strchr(i5 + 1, ';');
-    char* i7 = strchr(i6 + 1, ';');
+    
+    // ⭐⭐⭐ CRITICAL FIX for Bright_CAT (LOAD_SELECTOR == 2) ⭐⭐⭐
+    // Pour Bright_CAT, s'arrêter à la constellation, ne pas chercher plus loin
+    char* i4 = NULL;
+    char* i5 = NULL;
+    char* i6 = NULL;
+    char* i7 = NULL;
+    
+    if (LOAD_SELECTOR != 2) {
+        // Pour les autres catalogues, continuer à chercher les colonnes supplémentaires
+        i4 = strchr(i3 + 1, ';');
+        i5 = strchr(i4 + 1, ';');
+        i6 = strchr(i5 + 1, ';');
+        i7 = strchr(i6 + 1, ';');
+    }
     
     // OBJECT_NAME (from start to i1)
     if (i1 != NULL) {
@@ -192,9 +203,24 @@ if (objects == 1) {
         OBJECT_NAME[i1 - objData] = '\0';
     }
     
-    // OBJECT_DESCR (after i7)
-    if (i7 != NULL) {
-        safeStringCopy(OBJECT_DESCR, i7 + 1, sizeof(OBJECT_DESCR));
+    // OBJECT_DESCR (after i7) - mais pour Bright_CAT, c'est la constellation
+    if (LOAD_SELECTOR == 2) {
+        // Pour Bright_CAT, OBJECT_DESCR est la constellation (entre i3 et la fin)
+        if (i3 != NULL) {
+            safeStringCopy(OBJECT_DESCR, i3 + 1, sizeof(OBJECT_DESCR));
+            // Nettoyer les retours à la ligne
+            char* newline = strchr(OBJECT_DESCR, '\n');
+            if (newline) *newline = '\0';
+            char* carriage = strchr(OBJECT_DESCR, '\r');
+            if (carriage) *carriage = '\0';
+        }
+        // ⭐ Effacer OBJECT_DETAILS pour Bright_CAT
+        safeStringCopy(OBJECT_DETAILS, "", sizeof(OBJECT_DETAILS));
+    } else {
+        // Pour les autres catalogues
+        if (i7 != NULL) {
+            safeStringCopy(OBJECT_DESCR, i7 + 1, sizeof(OBJECT_DESCR));
+        }
     }
     
     // RA (between i1 and i2)
@@ -232,53 +258,61 @@ if (objects == 1) {
         }
     }
     
-if (LOAD_SELECTOR >= 3) {
-    char details[500];
-    
-    // Correctly extract the substrings
-    char constellation[50] = "";
-    char object_type[50] = "";
-    char magnitude[20] = "";
-    char size_period[50] = "";
-    
-    // Constellation (between i3 and i4)
-    if (i3 != NULL && i4 != NULL) {
-        strncpy(constellation, i3 + 1, i4 - i3 - 1);
-        constellation[i4 - i3 - 1] = '\0';
+    // ⭐⭐⭐ Pour Bright_CAT, on saute toute la partie extraction des détails ⭐⭐⭐
+    if (LOAD_SELECTOR != 2 && LOAD_SELECTOR >= 3) {
+        char details[500];
+        
+        // Correctly extract the substrings
+        char constellation[50] = "";
+        char object_type[50] = "";
+        char magnitude[20] = "";
+        char size_period[50] = "";
+        
+        // Constellation (between i3 and i4)
+        if (i3 != NULL && i4 != NULL) {
+            strncpy(constellation, i3 + 1, i4 - i3 - 1);
+            constellation[i4 - i3 - 1] = '\0';
+        }
+        
+        // Object type (between i4 and i5)
+        if (i4 != NULL && i5 != NULL) {
+            strncpy(object_type, i4 + 1, i5 - i4 - 1);
+            object_type[i5 - i4 - 1] = '\0';
+        }
+        
+        // Magnitude (between i5 and i6)
+        if (i5 != NULL && i6 != NULL) {
+            strncpy(magnitude, i5 + 1, i6 - i5 - 1);
+            magnitude[i6 - i5 - 1] = '\0';
+        }
+        
+        // Size/Period/Separation (between i6 and i7)
+        if (i6 != NULL && i7 != NULL) {
+            strncpy(size_period, i6 + 1, i7 - i6 - 1);
+            size_period[i7 - i6 - 1] = '\0';
+        }
+        
+        // Build description
+        if (LOAD_SELECTOR >= 6) {
+            snprintf(details, sizeof(details), "%s is a %s in constellation %s, with visible magnitude of %s and a size of %s",
+                     OBJECT_NAME, object_type, constellation, magnitude, size_period);
+        } else if (LOAD_SELECTOR == 3) {
+            snprintf(details, sizeof(details), "%s is a %s in constellation %s, with visible magnitude of %s and separation of %s arcsec",
+                     OBJECT_NAME, object_type, constellation, magnitude, size_period);
+        } else if (LOAD_SELECTOR == 4) {
+            snprintf(details, sizeof(details), "%s is a %s in constellation %s, with visible magnitude of %s and a period of %s",
+                     OBJECT_NAME, object_type, constellation, magnitude, size_period);
+        }
+        
+        safeStringCopy(OBJECT_DETAILS, details, sizeof(OBJECT_DETAILS));
     }
     
-    // Object type (between i4 and i5)
-    if (i4 != NULL && i5 != NULL) {
-        strncpy(object_type, i4 + 1, i5 - i4 - 1);
-        object_type[i5 - i4 - 1] = '\0';
-    }
+    // Nettoyer OBJECT_NAME des retours à la ligne
+    char* newline = strchr(OBJECT_NAME, '\n');
+    if (newline) *newline = '\0';
+    char* carriage = strchr(OBJECT_NAME, '\r');
+    if (carriage) *carriage = '\0';
     
-    // Magnitude (between i5 and i6)
-    if (i5 != NULL && i6 != NULL) {
-        strncpy(magnitude, i5 + 1, i6 - i5 - 1);
-        magnitude[i6 - i5 - 1] = '\0';
-    }
-    
-    // Size/Period/Separation (between i6 and i7)
-    if (i6 != NULL && i7 != NULL) {
-        strncpy(size_period, i6 + 1, i7 - i6 - 1);
-        size_period[i7 - i6 - 1] = '\0';
-    }
-    
-    // Build description
-    if (LOAD_SELECTOR >= 6) {
-        snprintf(details, sizeof(details), "%s is a %s in constellation %s, with visible magnitude of %s and a size of %s",
-                 OBJECT_NAME, object_type, constellation, magnitude, size_period);
-    } else if (LOAD_SELECTOR == 3) {
-        snprintf(details, sizeof(details), "%s is a %s in constellation %s, with visible magnitude of %s and separation of %s arcsec",
-                 OBJECT_NAME, object_type, constellation, magnitude, size_period);
-    } else if (LOAD_SELECTOR == 4) {
-        snprintf(details, sizeof(details), "%s is a %s in constellation %s, with visible magnitude of %s and a period of %s",
-                 OBJECT_NAME, object_type, constellation, magnitude, size_period);
-    }
-    
-    safeStringCopy(OBJECT_DETAILS, details, sizeof(OBJECT_DETAILS));
-}
 } else if (objects == 2) {
     TRACKING_MOON = false;
     
@@ -501,7 +535,7 @@ void Sidereal_rate() {
     if (RA_mode_steps != MICROSteps) {
       setmStepsMode("R", MICROSteps);
     }
-    digitalWrite(RA_DIR, STP_BACK);
+    digitalWrite(RA_DIR, STP_FWD); // dir inverted for 2209
     PIOC->PIO_SODR = (1u << 26);
     delayMicroseconds(2);
     PIOC->PIO_CODR = (1u << 26);
@@ -546,19 +580,25 @@ void cosiderSlewTo_NonBlocking() {
   if (!slewInitialized) {
     slewInitialized = true;
 
-
-
     DEC_accelerationDone = false;
     RA_accelerationDone = false;
 
-
-    
     RA_move_ending = 0;
     RA_waitingToStart = false;
     
     // initial computing
     float HAH = (HAHour >= 12) ? (HAHour - 12) : HAHour;
     float HAM = HAMin;
+
+
+
+//int iHAHour = (int)HAHour;  // troncature propre
+//float HAM = HAMin;
+//float HAH = (iHAHour >= 12) ? (iHAHour - 12) : iHAHour;
+
+
+
+
     IS_MERIDIAN_PASSED = (HAHour < 12);
     
     double HA_decimal = ((HAH + (HAM / 60)) * 15) + delta_a_RA;
@@ -581,8 +621,8 @@ void cosiderSlewTo_NonBlocking() {
     }
     
     // initial configuration
-    setmStepsMode("R", 16);
-    setmStepsMode("D", 16);
+    setmStepsMode("R", 64); // for 2209
+    setmStepsMode("D", 64); // for 2209
     delay(10);
     
     long delta_RA_steps_signed = SLEW_RA_microsteps - RA_microSteps;
@@ -599,6 +639,10 @@ void cosiderSlewTo_NonBlocking() {
     Serial.print("Target DEC: "); Serial.println(SLEW_DEC_microsteps);
     Serial.print("Delta RA: "); Serial.println(delta_RA_steps_signed);
     Serial.print("Delta DEC: "); Serial.println(delta_DEC_steps_signed);
+    Serial.print("target RA steps : "); Serial.println(slewRA_targetSteps);
+    Serial.print("target DEC steps: "); Serial.println(slewDEC_targetSteps);
+    Serial.print("RA mode steps : "); Serial.println(RA_mode_steps);
+    Serial.print("DEC mode steps: "); Serial.println(DEC_mode_steps);
     #endif
 
     // === PROTECTION : too small distance ===
@@ -679,14 +723,14 @@ void cosiderSlewTo_NonBlocking() {
     
     // Start DEC
     if (delta_DEC_steps >= MIN_SLEW_DISTANCE) {
-      int dirDEC = (delta_DEC_steps_signed > 0) ? STP_BACK : STP_FWD;
+      int dirDEC = (delta_DEC_steps_signed > 0) ? STP_FWD : STP_BACK; // dir inverted for 2209
       long margin = max((long)100, delta_DEC_steps / 10);
       long safeDEC_steps = delta_DEC_steps + margin;
-      long periodDEC = 800;
+      long periodDEC = 140;
       startSlewDEC(dirDEC, safeDEC_steps, periodDEC);
       
       #ifdef serial_debug
-      Serial.print("DEC START: dir="); Serial.print(dirDEC == STP_BACK ? "BACK" : "FWD");
+      Serial.print("DEC START: dir="); Serial.print(dirDEC == STP_FWD ? "FWD" : "BACK"); // inverted for 2209
       Serial.print(" steps="); Serial.println(safeDEC_steps);
       #endif
       
@@ -709,10 +753,10 @@ void cosiderSlewTo_NonBlocking() {
     // RA start only if RA_finish_last == 1
     if (delta_RA_steps >= MIN_SLEW_DISTANCE && RA_finish_last == 1 && delta_DEC_steps < MIN_SLEW_DISTANCE) {
       // Ces where only RA have to move
-      int dirRA = (delta_RA_steps_signed > 0) ? STP_BACK : STP_FWD;
+      int dirRA = (delta_RA_steps_signed > 0) ? STP_FWD : STP_BACK; // inverted dir 2209
       long margin = max((long)100, delta_RA_steps / 10);
       long safeRA_steps = delta_RA_steps + margin;
-      long periodRA = 800;
+      long periodRA = 140;
       startSlewRA(dirRA, safeRA_steps, periodRA);
       
       #ifdef serial_debug
@@ -736,13 +780,13 @@ void cosiderSlewTo_NonBlocking() {
     const long MIN_SLEW_DISTANCE = 50;
     
     if (delta_RA_steps >= MIN_SLEW_DISTANCE) {
-      int dirRA = (delta_RA_steps_signed > 0) ? STP_BACK : STP_FWD;
+      int dirRA = (delta_RA_steps_signed > 0) ? STP_FWD : STP_BACK; // inverted for 2209
       long margin = max((long)100, delta_RA_steps / 10);
       long safeRA_steps = delta_RA_steps + margin;
-      long periodRA = 800;
+      long periodRA = 140;
       
       Slew_RA_timer = millis();
-      setmStepsMode("R", 16);
+      setmStepsMode("R", 64); // for 2209
       delay(10);
       
       startSlewRA(dirRA, safeRA_steps, periodRA);
@@ -762,15 +806,13 @@ void cosiderSlewTo_NonBlocking() {
   if (!DEC_accelerationDone && slewDEC_active) {
     unsigned long delta_DEC_time = millis() - Slew_timer;
 
-      if (delta_DEC_time >= 4200) {
-        if (DEC_mode_steps != 1) setmStepsMode("D", 1);
+      if (delta_DEC_time >= 3400) {
+        if (DEC_mode_steps != 8) setmStepsMode("D", 8); // modified for 2209
         DEC_accelerationDone = true;
-      } else if (delta_DEC_time >= 3400) {
-        if (DEC_mode_steps != 2) setmStepsMode("D", 2);
       } else if (delta_DEC_time >= 2600) {
-        if (DEC_mode_steps != 4) setmStepsMode("D", 4);
+        if (DEC_mode_steps != 16) setmStepsMode("D", 16);
       } else if (delta_DEC_time >= 1800) {
-        if (DEC_mode_steps != 8) setmStepsMode("D", 8);
+        if (DEC_mode_steps != 32) setmStepsMode("D", 32);
       }
   }
   
@@ -781,15 +823,13 @@ void cosiderSlewTo_NonBlocking() {
   if (!RA_accelerationDone && slewRA_active) {
     unsigned long delta_RA_time = millis() - Slew_RA_timer;
    
-      if (delta_RA_time >= 4200) {
-        if (RA_mode_steps != 1) setmStepsMode("R", 1);
-        RA_accelerationDone = true;
-      } else if (delta_RA_time >= 3400) {
-        if (RA_mode_steps != 2) setmStepsMode("R", 2);
-      } else if (delta_RA_time >= 2600) {
-        if (RA_mode_steps != 4) setmStepsMode("R", 4);
-      } else if (delta_RA_time >= 1800) {
+      if (delta_RA_time >= 3400) {
         if (RA_mode_steps != 8) setmStepsMode("R", 8);
+        RA_accelerationDone = true;
+      } else if (delta_RA_time >= 2600) {
+        if (RA_mode_steps != 16) setmStepsMode("R", 16);
+      } else if (delta_RA_time >= 1800) {
+        if (RA_mode_steps != 32) setmStepsMode("R", 32);
       }
   }
   
@@ -798,67 +838,63 @@ void cosiderSlewTo_NonBlocking() {
   if (millis() - lastDecelCheck > 50) {
     
     // DEC - PRGRESSIVE DECEL
-    if (slewDEC_active) {
+    if (slewDEC_active && DEC_accelerationDone) {
       long remaining_to_target = abs(SLEW_DEC_microsteps - DEC_microSteps);
       
       #ifdef serial_debug
       Serial.print("REAL REMAIN DEC: "); Serial.println(remaining_to_target);
       #endif
       
-      if ((remaining_to_target >= DECEL_THRESHOLD_MODE_4 && remaining_to_target <= DECEL_THRESHOLD_MODE_8) && (DEC_mode_steps == 16 || DEC_mode_steps == 8)) {
-        setmStepsMode("D", 2);
-        #ifdef serial_debug
-        Serial.println("DEC -> mode 2");
-        #endif
-      } else if ((remaining_to_target >= DECEL_THRESHOLD_MODE_2 && remaining_to_target < DECEL_THRESHOLD_MODE_4) && (DEC_mode_steps == 8 || DEC_mode_steps == 4)) {
-        setmStepsMode("D", 4);
-        #ifdef serial_debug
-        Serial.println("DEC -> mode 4");
-        #endif
-      } else if ((remaining_to_target >= DECEL_THRESHOLD_MODE_1 && remaining_to_target < DECEL_THRESHOLD_MODE_2) && (DEC_mode_steps == 4 || DEC_mode_steps == 2)) {
-        setmStepsMode("D", 8);
-        #ifdef serial_debug
-        Serial.println("DEC -> mode 8");
-        #endif
-      } else if (remaining_to_target < DECEL_THRESHOLD_MODE_1 && (DEC_mode_steps == 2 || DEC_mode_steps == 1)) {
-        setmStepsMode("D", 16);
-        #ifdef serial_debug
-        Serial.println("DEC -> mode 16");
-        #endif
-      }
-    }
-    
-    // RA - DECEL
-    if (slewRA_active) {
+if (slewDEC_active && DEC_accelerationDone) {
+  long remaining_to_target = abs(SLEW_DEC_microsteps - DEC_microSteps);
+
+  if (remaining_to_target < DECEL_THRESHOLD_MODE_64) {
+    // Final zone : mode 64 (slowest)
+    if (DEC_mode_steps < 64) setmStepsMode("D", 64);
+
+  } else if (remaining_to_target < DECEL_THRESHOLD_MODE_32) {
+    // Mode 32
+    if (DEC_mode_steps < 32) setmStepsMode("D", 32);
+
+  } else if (remaining_to_target < DECEL_THRESHOLD_MODE_16) {
+    // Mode 16
+    if (DEC_mode_steps < 16) setmStepsMode("D", 16);
+
+  } else if (remaining_to_target < DECEL_THRESHOLD_MODE_8) {
+    // Full speed mode 8
+    if (DEC_mode_steps < 8) setmStepsMode("D", 8);
+  }}
+}
+
+    // RA - PROGESSIVE DECEL
+    if (slewRA_active && RA_accelerationDone) {
       long remaining_to_target = abs(SLEW_RA_microsteps - RA_microSteps);
       
       #ifdef serial_debug
       Serial.print("REAL REMAIN RA: "); Serial.println(remaining_to_target);
       #endif
 
-      if ((remaining_to_target >= DECEL_THRESHOLD_MODE_4 && remaining_to_target <= DECEL_THRESHOLD_MODE_8) && (RA_mode_steps == 16 || RA_mode_steps == 8)) {
-      setmStepsMode("R", 2);
-      #ifdef serial_debug
-      Serial.println("RA -> mode 2");
-      #endif
-      } else if ((remaining_to_target >= DECEL_THRESHOLD_MODE_2 && remaining_to_target < DECEL_THRESHOLD_MODE_4) && (RA_mode_steps == 8 || RA_mode_steps == 4)) {
-      setmStepsMode("R", 4);
-      #ifdef serial_debug
-      Serial.println("RA -> mode 4");
-      #endif
-      } else if ((remaining_to_target >= DECEL_THRESHOLD_MODE_1 && remaining_to_target < DECEL_THRESHOLD_MODE_2) && (RA_mode_steps == 4 || RA_mode_steps == 2)) {
-      setmStepsMode("R", 8);
-      #ifdef serial_debug
-      Serial.println("RA -> mode 8");
-      #endif
-      } else if (remaining_to_target < DECEL_THRESHOLD_MODE_1 && (RA_mode_steps == 2 || RA_mode_steps == 1)) {
-      setmStepsMode("R", 16);
-      #ifdef serial_debug
-      Serial.println("RA -> mode 16");
-      #endif
-      }
-    }
-    
+if (slewRA_active && RA_accelerationDone) {
+  long remaining_to_target = abs(SLEW_RA_microsteps - RA_microSteps);
+
+  if (remaining_to_target < DECEL_THRESHOLD_MODE_64) {
+    // Final zone : mode 64 (slowest)
+    if (RA_mode_steps < 64) setmStepsMode("R", 64);
+
+  } else if (remaining_to_target < DECEL_THRESHOLD_MODE_32) {
+    // Mode 32
+    if (RA_mode_steps < 32) setmStepsMode("R", 32);
+
+  } else if (remaining_to_target < DECEL_THRESHOLD_MODE_16) {
+    // Mode 16
+    if (RA_mode_steps < 16) setmStepsMode("R", 16);
+
+  } else if (remaining_to_target < DECEL_THRESHOLD_MODE_8) {
+    // Full speed
+    if (RA_mode_steps < 8) setmStepsMode("R", 8);
+  }}
+}
+
     lastDecelCheck = millis();
   }
   
@@ -870,16 +906,16 @@ void cosiderSlewTo_NonBlocking() {
     const long MIN_SLEW_DISTANCE = 50;
     
     if (delta_RA_steps >= MIN_SLEW_DISTANCE) {
-      int dirRA = (delta_RA_steps_signed > 0) ? STP_BACK : STP_FWD;
+      int dirRA = (delta_RA_steps_signed > 0) ? STP_FWD : STP_BACK; // inverted for 2209
       long margin = max((long)100, delta_RA_steps / 10);
       long safeRA_steps = delta_RA_steps + margin;
-      long periodRA = 800;
+      long periodRA = 140;
       
       RA_accelerationDone = false;
       RA_finish_last = 1;
       Slew_RA_timer = millis();
       
-      setmStepsMode("R", 16);
+      setmStepsMode("R", 64); // for 2209
       delay(10);
       
       startSlewRA(dirRA, safeRA_steps, periodRA);
@@ -912,15 +948,6 @@ void cosiderSlewTo_NonBlocking() {
   #endif
   
   // === SLEW END ===
-//  if (IS_OBJECT_RA_FOUND && IS_OBJECT_DEC_FOUND) {
-//    IS_OBJ_FOUND = true;
-//    RA_move_ending = 0;
-//    slewInitialized = false;
-//    DEC_accelerationDone = false;
-//    RA_accelerationDone = false;
-//    DEC_accel_step = 0;
-//    RA_accel_step = 0;
-//    RA_waitingToStart = false;
 
 if (IS_OBJECT_RA_FOUND && IS_OBJECT_DEC_FOUND) {
     IS_OBJ_FOUND = true;
@@ -999,8 +1026,8 @@ unsigned long manual_move_start_time_dec = 0;
 unsigned long last_manual_move_time = 0;
 unsigned long last_ra_activity = 0;
 unsigned long last_dec_activity = 0;
-int manual_move_speed_ra = 16;
-int manual_move_speed_dec = 16;
+int manual_move_speed_ra = 64; //2209
+int manual_move_speed_dec = 64; // 2209
 bool is_manual_moving_ra = false;
 bool is_manual_moving_dec = false;
 int last_xp = 512, last_yp = 512;
@@ -1029,7 +1056,7 @@ void consider_Manual_Move(int xP, int yP) {
     if (is_manual_moving_ra && (current_time - last_ra_activity > 500)) {
       is_manual_moving_ra = false;
       manual_move_start_time_ra = 0;
-      manual_move_speed_ra = 16;
+      manual_move_speed_ra = 64; //2209
       last_ra_direction = 0;
     }
   } else {
@@ -1042,11 +1069,11 @@ void consider_Manual_Move(int xP, int yP) {
       // First movement or after a pause
       is_manual_moving_ra = true;
       manual_move_start_time_ra = current_time;
-      manual_move_speed_ra = 16;
+      manual_move_speed_ra = 64; //2209
     } else if (direction_changed) {
       // Direction change: restart acceleration from the beginning
       manual_move_start_time_ra = current_time;
-      manual_move_speed_ra = 16;
+      manual_move_speed_ra = 64; //2209
     }
     
     last_ra_direction = current_ra_direction;
@@ -1055,13 +1082,13 @@ void consider_Manual_Move(int xP, int yP) {
     unsigned long move_duration_ra = current_time - manual_move_start_time_ra;
     
     if (move_duration_ra >= 0 && move_duration_ra < 500) {
-      manual_move_speed_ra = 16;
+      manual_move_speed_ra = 64; // 2209
     } else if (move_duration_ra >= 500 && move_duration_ra < 1000) {
-      manual_move_speed_ra = 8;
+      manual_move_speed_ra = 32; // 2209 
     } else if (move_duration_ra >= 1000 && move_duration_ra < 1500) {
-      manual_move_speed_ra = 4;
+      manual_move_speed_ra = 16; // 2209
     } else if (move_duration_ra >= 1500) {
-      manual_move_speed_ra = 2;
+      manual_move_speed_ra = 8; // 2209
     }
   }
   
@@ -1079,7 +1106,7 @@ void consider_Manual_Move(int xP, int yP) {
     if (is_manual_moving_dec && (current_time - last_dec_activity > 500)) {
       is_manual_moving_dec = false;
       manual_move_start_time_dec = 0;
-      manual_move_speed_dec = 16;
+      manual_move_speed_dec = 64; // 2209
       last_dec_direction = 0;
     }
   } else {
@@ -1092,11 +1119,11 @@ void consider_Manual_Move(int xP, int yP) {
     // First movement or after a pause
       is_manual_moving_dec = true;
       manual_move_start_time_dec = current_time;
-      manual_move_speed_dec = 16;
+      manual_move_speed_dec = 64; //2209
     } else if (direction_changed) {
      // Change of direction: restart acceleration from the beginning
       manual_move_start_time_dec = current_time;
-      manual_move_speed_dec = 16;
+      manual_move_speed_dec = 64; //2209
     }
     
     last_dec_direction = current_dec_direction;
@@ -1105,13 +1132,13 @@ void consider_Manual_Move(int xP, int yP) {
     unsigned long move_duration_dec = current_time - manual_move_start_time_dec;
     
     if (move_duration_dec >= 0 && move_duration_dec < 500) {
-      manual_move_speed_dec = 16;
+      manual_move_speed_dec = 64; // 2209
     } else if (move_duration_dec >= 500 && move_duration_dec < 1000) {
-      manual_move_speed_dec = 8;
+      manual_move_speed_dec = 32; // 2209
     } else if (move_duration_dec >= 1000 && move_duration_dec < 1500) {
-      manual_move_speed_dec = 4;
+      manual_move_speed_dec = 16; // 2209
     } else if (move_duration_dec >= 1500) {
-      manual_move_speed_dec = 2;
+      manual_move_speed_dec = 8; // 2209
     }
   }
   
@@ -1120,9 +1147,9 @@ void consider_Manual_Move(int xP, int yP) {
   
   // Adjsut max speed for both axis
   int fastest_speed = min(manual_move_speed_ra, manual_move_speed_dec);
-  if (fastest_speed == 2) step_interval_micros = 200;
-  else if (fastest_speed == 4) step_interval_micros = 300;
-  else if (fastest_speed == 8) step_interval_micros = 500;
+  if (fastest_speed == 8) step_interval_micros = 200; // 2209
+  else if (fastest_speed == 16) step_interval_micros = 300; // 2209
+  else if (fastest_speed == 32) step_interval_micros = 500; // 2209
   else step_interval_micros = 800;
   
   if (micros() - last_manual_move_time < step_interval_micros) {
@@ -1132,50 +1159,66 @@ void consider_Manual_Move(int xP, int yP) {
   
   // RA movment
   if (!ra_centered) {
-    if ((xP >= 0) && (xP <= 210)) {
-      int ra_speed = max(manual_move_speed_ra, 2);
+    if ((xP >= 0) && (xP <= 100)) {
+      int ra_speed = max(manual_move_speed_ra, 8); // all step vzlues modified for 2209
       setmStepsMode("R", ra_speed);
-      digitalWrite(RA_DIR, STP_FWD);
+      digitalWrite(RA_DIR, STP_BACK); // all dir inverted for 2209
       PIOC->PIO_SODR = (1u << 26);
       delayMicroseconds(5);
       PIOC->PIO_CODR = (1u << 26);
       RA_microSteps -= RA_mode_steps;
-    } else if ((xP > 210) && (xP <= 340)) {
-      int ra_speed = (manual_move_speed_ra > 4) ? manual_move_speed_ra : 4;
-      setmStepsMode("R", ra_speed);
-      digitalWrite(RA_DIR, STP_FWD);
-      PIOC->PIO_SODR = (1u << 26);
-      delayMicroseconds(5);
-      PIOC->PIO_CODR = (1u << 26);
-      RA_microSteps -= RA_mode_steps;
-    } else if ((xP > 340) && (xP <= 470)) {
-      int ra_speed = (manual_move_speed_ra > 8) ? manual_move_speed_ra : 8;
-      setmStepsMode("R", ra_speed);
-      digitalWrite(RA_DIR, STP_FWD);
-      PIOC->PIO_SODR = (1u << 26);
-      delayMicroseconds(5);
-      PIOC->PIO_CODR = (1u << 26);
-      RA_microSteps -= RA_mode_steps;
-    } else if ((xP > 630) && (xP <= 760)) {
-      int ra_speed = (manual_move_speed_ra > 8) ? manual_move_speed_ra : 8;
+    } else if ((xP > 100) && (xP <= 150)) {
+      int ra_speed = (manual_move_speed_ra > 16) ? manual_move_speed_ra : 16;
       setmStepsMode("R", ra_speed);
       digitalWrite(RA_DIR, STP_BACK);
+      PIOC->PIO_SODR = (1u << 26);
+      delayMicroseconds(5);
+      PIOC->PIO_CODR = (1u << 26);
+      RA_microSteps -= RA_mode_steps;
+    } else if ((xP > 150) && (xP <= 250)) {
+      int ra_speed = (manual_move_speed_ra > 32) ? manual_move_speed_ra : 32;
+      setmStepsMode("R", ra_speed);
+      digitalWrite(RA_DIR, STP_BACK);
+      PIOC->PIO_SODR = (1u << 26);
+      delayMicroseconds(5);
+      PIOC->PIO_CODR = (1u << 26);
+      RA_microSteps -= RA_mode_steps;
+    } else if ((xP > 250) && (xP <= 400)) {
+      int ra_speed = (manual_move_speed_ra > 64) ? manual_move_speed_ra : 64;
+      setmStepsMode("R", ra_speed);
+      digitalWrite(RA_DIR, STP_BACK);
+      PIOC->PIO_SODR = (1u << 26);
+      delayMicroseconds(500);
+      PIOC->PIO_CODR = (1u << 26);
+      RA_microSteps -= RA_mode_steps; 
+    } else if ((xP > 624) && (xP <= 774)) {
+      int ra_speed = (manual_move_speed_ra > 64) ? manual_move_speed_ra : 64;
+      setmStepsMode("R", ra_speed);
+      digitalWrite(RA_DIR, STP_FWD);
+      PIOC->PIO_SODR = (1u << 26);
+      delayMicroseconds(500);
+      PIOC->PIO_CODR = (1u << 26);
+      RA_microSteps += RA_mode_steps;
+    } else if ((xP > 774) && (xP <= 874)) {
+      int ra_speed = (manual_move_speed_ra > 32) ? manual_move_speed_ra : 32;
+      setmStepsMode("R", ra_speed);
+      digitalWrite(RA_DIR, STP_FWD);
       PIOC->PIO_SODR = (1u << 26);
       delayMicroseconds(5);
       PIOC->PIO_CODR = (1u << 26);
       RA_microSteps += RA_mode_steps;
-    } else if ((xP > 760) && (xP <= 890)) {
-      int ra_speed = (manual_move_speed_ra > 4) ? manual_move_speed_ra : 4;
+    } else if ((xP > 874) && (xP <= 924)) {
+      int ra_speed = (manual_move_speed_ra > 16) ? manual_move_speed_ra : 16;
       setmStepsMode("R", ra_speed);
-      digitalWrite(RA_DIR, STP_BACK);
+      digitalWrite(RA_DIR, STP_FWD);
       PIOC->PIO_SODR = (1u << 26);
       delayMicroseconds(5);
       PIOC->PIO_CODR = (1u << 26);
       RA_microSteps += RA_mode_steps;
-    } else if ((xP > 890) && (xP <= 1023)) {
-      int ra_speed = max(manual_move_speed_ra, 2);
+    } else if ((xP > 924) && (xP <= 1024)) {
+      int ra_speed = max(manual_move_speed_ra, 8);
       setmStepsMode("R", ra_speed);
-      digitalWrite(RA_DIR, STP_BACK);
+      digitalWrite(RA_DIR, STP_FWD);
       PIOC->PIO_SODR = (1u << 26);
       delayMicroseconds(5);
       PIOC->PIO_CODR = (1u << 26);
@@ -1185,50 +1228,66 @@ void consider_Manual_Move(int xP, int yP) {
 
   // DEC movment
   if (!dec_centered) {
-    if ((yP >= 0) && (yP <= 180)) {
-      int dec_speed = max(manual_move_speed_dec, 2);
+    if ((yP >= 0) && (yP <= 100)) {
+      int dec_speed = max(manual_move_speed_dec, 8);
       setmStepsMode("D", dec_speed);
-      digitalWrite(DEC_DIR, STP_BACK);
+      digitalWrite(DEC_DIR, STP_FWD); // all dir inverted for 2209
       PIOC->PIO_SODR = (1u << 24);
       delayMicroseconds(5);
       PIOC->PIO_CODR = (1u << 24);
       DEC_microSteps += DEC_mode_steps;
-    } else if ((yP > 180) && (yP <= 310)) {
-      int dec_speed = (manual_move_speed_dec > 4) ? manual_move_speed_dec : 4;
-      setmStepsMode("D", dec_speed);
-      digitalWrite(DEC_DIR, STP_BACK);
-      PIOC->PIO_SODR = (1u << 24);
-      delayMicroseconds(5);
-      PIOC->PIO_CODR = (1u << 24);
-      DEC_microSteps += DEC_mode_steps;
-    } else if ((yP > 310) && (yP <= 440)) {
-      int dec_speed = (manual_move_speed_dec > 8) ? manual_move_speed_dec : 8;
-      setmStepsMode("D", dec_speed);
-      digitalWrite(DEC_DIR, STP_BACK);
-      PIOC->PIO_SODR = (1u << 24);
-      delayMicroseconds(5);
-      PIOC->PIO_CODR = (1u << 24);
-      DEC_microSteps += DEC_mode_steps;
-    } else if ((yP > 600) && (yP <= 730)) {
-      int dec_speed = (manual_move_speed_dec > 8) ? manual_move_speed_dec : 8;
+    } else if ((yP > 100) && (yP <= 150)) {
+      int dec_speed = (manual_move_speed_dec > 16) ? manual_move_speed_dec : 16;
       setmStepsMode("D", dec_speed);
       digitalWrite(DEC_DIR, STP_FWD);
+      PIOC->PIO_SODR = (1u << 24);
+      delayMicroseconds(5);
+      PIOC->PIO_CODR = (1u << 24);
+      DEC_microSteps += DEC_mode_steps;
+    } else if ((yP > 150) && (yP <= 250)) {
+      int dec_speed = (manual_move_speed_dec > 32) ? manual_move_speed_dec : 32;
+      setmStepsMode("D", dec_speed);
+      digitalWrite(DEC_DIR, STP_FWD);
+      PIOC->PIO_SODR = (1u << 24);
+      delayMicroseconds(5);
+      PIOC->PIO_CODR = (1u << 24);
+      DEC_microSteps += DEC_mode_steps;
+    } else if ((yP > 250) && (yP <= 400)) {
+      int dec_speed = (manual_move_speed_dec > 64) ? manual_move_speed_dec : 64;
+      setmStepsMode("D", dec_speed);
+      digitalWrite(DEC_DIR, STP_FWD);
+      PIOC->PIO_SODR = (1u << 24);
+      delayMicroseconds(500);
+      PIOC->PIO_CODR = (1u << 24);
+      DEC_microSteps += DEC_mode_steps;
+    } else if ((yP > 624) && (yP <= 774)) {
+      int dec_speed = (manual_move_speed_dec > 64) ? manual_move_speed_dec : 64;
+      setmStepsMode("D", dec_speed);
+      digitalWrite(DEC_DIR, STP_BACK);
+      PIOC->PIO_SODR = (1u << 24);
+      delayMicroseconds(500);
+      PIOC->PIO_CODR = (1u << 24);
+      DEC_microSteps += DEC_mode_steps;            
+    } else if ((yP > 774) && (yP <= 874)) {
+      int dec_speed = (manual_move_speed_dec > 32) ? manual_move_speed_dec : 32;
+      setmStepsMode("D", dec_speed);
+      digitalWrite(DEC_DIR, STP_BACK);
       PIOC->PIO_SODR = (1u << 24);
       delayMicroseconds(5);
       PIOC->PIO_CODR = (1u << 24);
       DEC_microSteps -= DEC_mode_steps;
-    } else if ((yP > 730) && (yP <= 860)) {
-      int dec_speed = (manual_move_speed_dec > 4) ? manual_move_speed_dec : 4;
+    } else if ((yP > 874) && (yP <= 924)) {
+      int dec_speed = (manual_move_speed_dec > 16) ? manual_move_speed_dec : 16;
       setmStepsMode("D", dec_speed);
-      digitalWrite(DEC_DIR, STP_FWD);
+      digitalWrite(DEC_DIR, STP_BACK);
       PIOC->PIO_SODR = (1u << 24);
       delayMicroseconds(5);
       PIOC->PIO_CODR = (1u << 24);
       DEC_microSteps -= DEC_mode_steps;
-    } else if ((yP > 860) && (yP <= 1023)) {
-      int dec_speed = max(manual_move_speed_dec, 2);
+    } else if ((yP > 924) && (yP <= 1024)) {
+      int dec_speed = max(manual_move_speed_dec, 8);
       setmStepsMode("D", dec_speed);
-      digitalWrite(DEC_DIR, STP_FWD);
+      digitalWrite(DEC_DIR, STP_BACK);
       PIOC->PIO_SODR = (1u << 24);
       delayMicroseconds(5);
       PIOC->PIO_CODR = (1u << 24);
@@ -1256,95 +1315,66 @@ static void smartDelay(unsigned long ms)
 ///////////////////////////////////////////////////////////////// Set Steps Mode Function ///////////////////////////////////////////////////////////
 
 void setmStepsMode(const char* P, int mod) {
-  // P means the axis: RA or DEC; mod means MicroSteppping mode: x32, x16, x8....
-  // setmStepsMode(R,2) - means RA with 1/2 steps; setmStepsMode(R,4) - means RA with 1/4 steps
+  // TMC2209 CLONE (Chinese) MS1/MS2 truth table (can be INVERTED vs official) TRY OTHER VALUES FOR OTHER REFERENCES TMC2209
+
+//    tft.setTextScale(2);
+//    tft.setTextColor(GREEN);
+//    tft.cursorToXY(120, 425);
+//    tft.fillRect(120, 425, 80, 60, BLACK);
+//    tft.println(mod);
 
 
-  // PINS Mapping for fast switching
-  // DEC_M2 - Pin 8 UP - PC22 - PIOC->PIO_SODR=(1u<<22);
-  // DEC_M1 - Pin 9 UP - PC21 -  PIOC->PIO_SODR=(1u<<21);
-  // DEC_M0 - Pin 10 UP - PC29 -  PIOC->PIO_SODR=(1u<<29);
-  // RA_M0 - Pin 11 UP - PD7 -  PIOD->PIO_SODR=(1u<<7);
-  // RA_M1 - Pin 12 UP - PD8 -  PIOD->PIO_SODR=(1u<<8);
-  // RA_M2 - Pin 13 UP - PB27 -  PIOB->PIO_SODR=(1u<<27);
-  // DEC_M2 - Pin 8 DOWN - PC22 - PIOC->PIO_CODR=(1u<<22);
-  // DEC_M1 - Pin 9 DOWN - PC21 -  PIOC->PIO_CODR=(1u<<21);
-  // DEC_M0 - Pin 10 DOWN - PC29 -  PIOC->PIO_CODR=(1u<<29);
-  // RA_M0 - Pin 11 DOWN - PD7 -  PIOD->PIO_CODR=(1u<<7);
-  // RA_M1 - Pin 12 DOWN - PD8 -  PIOD->PIO_CODR=(1u<<8);
-  // RA_M2 - Pin 13 DOWN - PB27 -  PIOB->PIO_CODR=(1u<<27);
-  //
-  // PIOC->PIO_SODR=(1u<<25); // Set Pin High
-  // PIOC->PIO_CODR=(1u<<25); // Set Pin Low
-
-  if (P == "R") { // Set RA modes
-    if (mod == 1) {                     // Full Step
-      PIOD->PIO_CODR = (1u << 7);
-      PIOD->PIO_CODR = (1u << 8);
-      PIOB->PIO_CODR = (1u << 27);
-    }
-    if (mod == 2) {                     // 1/2 Step
-      PIOD->PIO_SODR = (1u << 7);
-      PIOD->PIO_CODR = (1u << 8);
-      PIOB->PIO_CODR = (1u << 27);
-    }
-    if (mod == 4) {                     // 1/4 Step
-      PIOD->PIO_CODR = (1u << 7);
-      PIOD->PIO_SODR = (1u << 8);
-      PIOB->PIO_CODR = (1u << 27);
-    }
-    if (mod == 8) {                     // 1/8 Step
-      PIOD->PIO_SODR = (1u << 7);
-      PIOD->PIO_SODR = (1u << 8);
-      PIOB->PIO_CODR = (1u << 27);
-    }
-    if (mod == 16) {                     // 1/16 Step
-      PIOD->PIO_CODR = (1u << 7);
-      PIOD->PIO_CODR = (1u << 8);
-      PIOB->PIO_SODR = (1u << 27);
-    }
-    if (mod == 32) {                     // 1/32 Step
-      PIOD->PIO_SODR = (1u << 7);
-      PIOD->PIO_CODR = (1u << 8);
-      PIOB->PIO_SODR = (1u << 27);
+  if (strcmp(P, "R") == 0) {
+    PIOB->PIO_CODR = (1u << 27); // RA_MODE2 always LOW (unused)
+    switch (mod) {
+      case 8:   // 1/8: MS1=LOW, MS2=LOW
+        PIOD->PIO_CODR = (1u << 7);  // MS1 LOW
+        PIOD->PIO_CODR = (1u << 8);  // MS2 LOW 1tr/2sec
+        break;
+      case 16:   // 1/16: MS1=HIGH, MS2=HIGH
+        PIOD->PIO_SODR = (1u << 7);  // MS1 HIGH
+        PIOD->PIO_SODR = (1u << 8);  // MS2 HIGH 1tr/4sec
+        break;
+      case 32:   // 1/32: MS1=HIGH, MS2=LOW
+        PIOD->PIO_SODR = (1u << 7);  // MS1 HIGH
+        PIOD->PIO_CODR = (1u << 8);  // MS2 LOW 1tr/8sec
+        break;
+      case 64:  // 1/64: MS1=LOW, MS2=HIG
+      default:
+        PIOD->PIO_CODR = (1u << 7);   // MS1 LOW
+        PIOD->PIO_SODR = (1u << 8);   // MS2 HIGH 1tr/16sec
+        break;
     }
     RA_mode_steps = MICROSteps / mod;
   }
-  if (P == "D") { // Set DEC modes
-    if (mod == 1) {                     // Full Step
-      PIOC->PIO_CODR = (1u << 29);
-      PIOC->PIO_CODR = (1u << 21);
-      PIOC->PIO_CODR = (1u << 22);
-    }
-    if (mod == 2) {                     // 1/2 Step
-      PIOC->PIO_SODR = (1u << 29);
-      PIOC->PIO_CODR = (1u << 21);
-      PIOC->PIO_CODR = (1u << 22);
-    }
-    if (mod == 4) {                     // 1/4 Step
-      PIOC->PIO_CODR = (1u << 29);
-      PIOC->PIO_SODR = (1u << 21);
-      PIOC->PIO_CODR = (1u << 22);
-    }
-    if (mod == 8) {                     // 1/8 Step
-      PIOC->PIO_SODR = (1u << 29);
-      PIOC->PIO_SODR = (1u << 21);
-      PIOC->PIO_CODR = (1u << 22);
-    }
-    if (mod == 16) {                     // 1/16 Step
-      PIOC->PIO_CODR = (1u << 29);
-      PIOC->PIO_CODR = (1u << 21);
-      PIOC->PIO_SODR = (1u << 22);
-    }
-    if (mod == 32) {                     // 1/32 Step
-      PIOC->PIO_SODR = (1u << 29);
-      PIOC->PIO_CODR = (1u << 21);
-      PIOC->PIO_SODR = (1u << 22);
+
+  if (strcmp(P, "D") == 0) {
+    PIOC->PIO_CODR = (1u << 22); // DEC_MODE2 always LOW (unused)
+    switch (mod) {
+      case 8:   // 1/8: MS1=LOW, MS2=LOW
+        PIOC->PIO_CODR = (1u << 29);  // MS1 LOW
+        PIOC->PIO_CODR = (1u << 21);  // MS2 LOW
+        break;      
+      case 16:   // 1/16: MS1=HIGH, MS2=HIGH
+        PIOC->PIO_SODR = (1u << 29);  // MS1 HIGH
+        PIOC->PIO_SODR = (1u << 21);  // MS2 HIGH
+        break;        
+      case 32:   // 1/32: MS1=HIGH, MS2=LOW
+        PIOC->PIO_SODR = (1u << 29);  // MS1 HIGH
+        PIOC->PIO_CODR = (1u << 21);  // MS2 LOW
+        break;
+      case 64:  // 1/64: MS1=LOW, MS2=HIGH
+      default:
+        PIOC->PIO_CODR = (1u << 29);  // MS1 LOW
+        PIOC->PIO_SODR = (1u << 21);  // MS2 HIGH
+        break;
     }
     DEC_mode_steps = MICROSteps / mod;
   }
-  delayMicroseconds(5);   // Makes sure the DRV8825 can follow
+
+  delayMicroseconds(5);
 }
+
 ///////////////////////////////////////////////////////////////// Sound-ON Function ///////////////////////////////////////////////////////////
 
 void SoundOn(int note, int duration) {
@@ -1989,8 +2019,8 @@ void considerPulseGuiding()
   {
     if (digitalRead (RA_PlusPin) == HIGH)
     {
-      setmStepsMode("R", 16);
-      digitalWrite(RA_DIR, STP_BACK); // JG modif for new wiring (PCB)
+      setmStepsMode("R", 64); // 2209
+      digitalWrite(RA_DIR, STP_FWD); // JG modif for new wiring (PCB) // inverted for 2209
       digitalWrite(RA_STP, HIGH);
       digitalWrite(RA_STP, LOW);
       RA_microSteps += RA_mode_steps;
@@ -2001,8 +2031,8 @@ void considerPulseGuiding()
     }
     if (digitalRead (RA_MinusPin) == HIGH)
     {
-      setmStepsMode("R", 16);
-      digitalWrite(RA_DIR, STP_FWD); // JG modif for new wiring (PCB)
+      setmStepsMode("R", 64); // 2209
+      digitalWrite(RA_DIR, STP_BACK); // JG modif for new wiring (PCB) // inverted for 2209
       digitalWrite(RA_STP, HIGH);
       digitalWrite(RA_STP, LOW);
       RA_microSteps -= RA_mode_steps;
@@ -2013,8 +2043,8 @@ void considerPulseGuiding()
     }
     if (digitalRead (DEC_MinusPin) == HIGH)
     {
-      setmStepsMode("D", 16);
-      digitalWrite(DEC_DIR, STP_BACK); // JG modif for new wiring (PCB)
+      setmStepsMode("D", 64); // 2209
+      digitalWrite(DEC_DIR, STP_FWD); // JG modif for new wiring (PCB) // inverted for 2209
       digitalWrite(DEC_STP, HIGH);
       digitalWrite(DEC_STP, LOW);
       DEC_microSteps += DEC_mode_steps;
@@ -2026,8 +2056,8 @@ void considerPulseGuiding()
     }
  if (digitalRead (DEC_PlusPin) == HIGH)
     {
-       setmStepsMode("D", 16);
-       digitalWrite(DEC_DIR, STP_FWD); // JG modif for new wiring (PCB)
+       setmStepsMode("D", 64); // 2209
+       digitalWrite(DEC_DIR, STP_BACK); // JG modif for new wiring (PCB) // inverted for 2209
        digitalWrite(DEC_STP, HIGH);
        digitalWrite(DEC_STP, LOW);
        DEC_microSteps -= DEC_mode_steps;
@@ -2426,10 +2456,10 @@ void handleMoveCommand(const char* command) {
     int microStepMode;
     
     // Unified logic based on rate for both axes
-    if (absRate <= 0.2f) microStepMode = 16;
-    else if (absRate <= 0.4f) microStepMode = 8;
-    else if (absRate <= 0.6f) microStepMode = 4;
-    else microStepMode = 2;
+    if (absRate <= 0.2f) microStepMode = 64;
+    else if (absRate <= 0.4f) microStepMode = 32;
+    else if (absRate <= 0.6f) microStepMode = 16;
+    else microStepMode = 8;
 
     // Initializes the global (non-blocking) movement state
     noInterrupts(); // Minimal protection if ISR also writes these flags
@@ -2443,11 +2473,11 @@ void handleMoveCommand(const char* command) {
     if (strcmp(axisType, "axisPrimary") == 0 || strcmp(axisType, "RA") == 0) {
         moveAxis = MOVE_AXIS_RA;
         setmStepsMode("R", microStepMode);
-        digitalWrite(RA_DIR, moveDirPositive ? STP_FWD : STP_BACK);
+        digitalWrite(RA_DIR, moveDirPositive ? STP_BACK : STP_FWD); // inverted for 2209
     } else if (strcmp(axisType, "axisSecondary") == 0 || strcmp(axisType, "DEC") == 0) {
         moveAxis = MOVE_AXIS_DEC;
         setmStepsMode("D", microStepMode);
-        digitalWrite(DEC_DIR, moveDirPositive ? STP_FWD : STP_BACK);
+        digitalWrite(DEC_DIR, moveDirPositive ? STP_BACK : STP_FWD); // inverted for 2209
     } else {
         // axis unknown -> stop
         moveActive = false;
@@ -2748,8 +2778,8 @@ void gradualEmergencyStop() {
     int currentDelayDEC = 100;
     int finalDelay = 2000;    // µs between steps (very slow final speed)
 
-    setmStepsMode("R", 16);
-    setmStepsMode("D", 16);
+    setmStepsMode("R", 64); // 2209
+    setmStepsMode("D", 64); // 2209
     delay(10);
 
     // Decel ramp
@@ -2760,13 +2790,13 @@ void gradualEmergencyStop() {
         
         // continue the movment during decel
         if (targetRA > RA_microSteps) {
-            digitalWrite(RA_DIR, STP_BACK);
+            digitalWrite(RA_DIR, STP_FWD); // inverted for 2209
             PIOC->PIO_SODR = (1u << 26);
             delayMicroseconds(newDelayRA);
             PIOC->PIO_CODR = (1u << 26);
             RA_microSteps += RA_mode_steps;
         } else if (targetRA < RA_microSteps) {
-            digitalWrite(RA_DIR, STP_FWD);
+            digitalWrite(RA_DIR, STP_BACK); // inverted for 2209
             PIOC->PIO_SODR = (1u << 26);
             delayMicroseconds(newDelayRA);
             PIOC->PIO_CODR = (1u << 26);
@@ -2774,13 +2804,13 @@ void gradualEmergencyStop() {
         }
         
         if (targetDEC > DEC_microSteps) {
-            digitalWrite(DEC_DIR, STP_BACK);
+            digitalWrite(DEC_DIR, STP_FWD); // inverted for 2209
             PIOC->PIO_SODR = (1u << 24);
             delayMicroseconds(newDelayDEC);
             PIOC->PIO_CODR = (1u << 24);
             DEC_microSteps += DEC_mode_steps;
         } else if (targetDEC < DEC_microSteps) {
-            digitalWrite(DEC_DIR, STP_FWD);
+            digitalWrite(DEC_DIR, STP_BACK); // inverted for 2209
             PIOC->PIO_SODR = (1u << 24);
             delayMicroseconds(newDelayDEC);
             PIOC->PIO_CODR = (1u << 24);
@@ -2797,7 +2827,7 @@ void gradualEmergencyStop() {
     // Complete progressive stop
     for (int i = 0; i < 5; i++) {
         if (targetRA > RA_microSteps) {
-            digitalWrite(RA_DIR, STP_BACK);
+            digitalWrite(RA_DIR, STP_FWD); // inverted for 2209
             PIOC->PIO_SODR = (1u << 26);
             delayMicroseconds(finalDelay * 2); // slower
             PIOC->PIO_CODR = (1u << 26);
@@ -2805,7 +2835,7 @@ void gradualEmergencyStop() {
         }
         
         if (targetDEC > DEC_microSteps) {
-            digitalWrite(DEC_DIR, STP_BACK);
+            digitalWrite(DEC_DIR, STP_FWD); // inverted for 2209
             PIOC->PIO_SODR = (1u << 24);
             delayMicroseconds(finalDelay * 2);
             PIOC->PIO_CODR = (1u << 24);
@@ -2988,8 +3018,8 @@ void stopTracking() {
     tft.setTextColor(title_bg);
     tft.print(OBJECT_NAME);
     
-    // Stop the timer and switch back to full steps mode
-    setmStepsMode("R", 1);
+    // Stop the timer and switch back to mode 8 (2209)
+    setmStepsMode("R", 8);
     Timer3.stop();
 }
 
@@ -3050,8 +3080,8 @@ void handleGuideCommand(const char* command) {
             lastGuidePulse = 0; // Reset to start immediately
             
             // High precision motors config
-            setmStepsMode("R", 16);
-            setmStepsMode("D", 16);
+            setmStepsMode("R", 64); // 2209
+            setmStepsMode("D", 64); // 2209
             
             Serial.print("GUIDE_START:");
             Serial.print(processedDirection);
@@ -3096,25 +3126,25 @@ void processGuiding() {
     lastGuidePulse = currentTime;
     
       if (strcmp(currentGuideDirection, "NORTH") == 0) {
-        digitalWrite(DEC_DIR, STP_BACK);
+        digitalWrite(DEC_DIR, STP_FWD); // all inverted for 2209
         digitalWrite(DEC_STP, HIGH);
         digitalWrite(DEC_STP, LOW);
         DEC_microSteps += DEC_mode_steps;
     }
       else if (strcmp(currentGuideDirection, "SOUTH") == 0) {
-        digitalWrite(DEC_DIR, STP_FWD);
+        digitalWrite(DEC_DIR, STP_BACK);
         digitalWrite(DEC_STP, HIGH);
         digitalWrite(DEC_STP, LOW);
         DEC_microSteps -= DEC_mode_steps;
     }
       else if (strcmp(currentGuideDirection, "EAST") == 0) {
-        digitalWrite(RA_DIR, STP_BACK);
+        digitalWrite(RA_DIR, STP_FWD);
         digitalWrite(RA_STP, HIGH);
         digitalWrite(RA_STP, LOW);
         RA_microSteps += RA_mode_steps;
     }
       else if (strcmp(currentGuideDirection, "WEST") == 0) {
-        digitalWrite(RA_DIR, STP_FWD);
+        digitalWrite(RA_DIR, STP_BACK);
         digitalWrite(RA_STP, HIGH);
         digitalWrite(RA_STP, LOW);
         RA_microSteps -= RA_mode_steps;
@@ -4130,13 +4160,14 @@ void slewRA_ISR() {
     delayMicroseconds(10);
     PIOC->PIO_CODR = (1u << 26);
     
-    if (slewRA_currentDir == STP_BACK) {
+    if (slewRA_currentDir == STP_FWD) { // inverted for 2209
       RA_microSteps += RA_mode_steps;
     } else {
       RA_microSteps -= RA_mode_steps;
     }
     
-    slewRA_targetSteps--;
+    //slewRA_targetSteps--;
+    slewRA_targetSteps -= RA_mode_steps;
     
     // take a look if the target is reach
     if (SLEW_RA_microsteps >= (RA_microSteps - RA_mode_steps) && 
@@ -4165,13 +4196,14 @@ void slewDEC_ISR() {
     delayMicroseconds(10);
     PIOC->PIO_CODR = (1u << 24);
     
-    if (slewDEC_currentDir == STP_BACK) {
+    if (slewDEC_currentDir == STP_FWD) { // inverted for 2209
       DEC_microSteps += DEC_mode_steps;
     } else {
       DEC_microSteps -= DEC_mode_steps;
     }
     
-    slewDEC_targetSteps--;
+    //slewDEC_targetSteps--;
+    slewDEC_targetSteps -= DEC_mode_steps;
     
     // take a look if the target is reach
     if (SLEW_DEC_microsteps >= (DEC_microSteps - DEC_mode_steps) && 

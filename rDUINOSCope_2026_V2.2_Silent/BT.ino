@@ -299,16 +299,16 @@ if (strcmp(BT_COMMAND_STR, ":Gd") == 0) {
 }
 
 if (strcmp(BT_COMMAND_STR, ":Ms") == 0) {
-    setmStepsMode("D", 8);
+    setmStepsMode("D", 32); //2209
     for (int i = 0; i <= 200; i++) {
-        digitalWrite(DEC_DIR, STP_BACK);
+        digitalWrite(DEC_DIR, STP_FWD); // inverted for 2209
         PIOC->PIO_SODR = (1u << 24);
         delay(200 / i);
         PIOC->PIO_CODR = (1u << 24);
         DEC_microSteps += DEC_mode_steps;
     }
     for (int i = 0; i <= 20; i++) {
-        digitalWrite(DEC_DIR, STP_BACK);
+        digitalWrite(DEC_DIR, STP_FWD); // inverted for 2209
         PIOC->PIO_SODR = (1u << 24);
         delay(2 * i);
         PIOC->PIO_CODR = (1u << 24);
@@ -318,16 +318,16 @@ if (strcmp(BT_COMMAND_STR, ":Ms") == 0) {
 }
 
 if (strcmp(BT_COMMAND_STR, ":Mn") == 0) {
-    setmStepsMode("D", 8);
+    setmStepsMode("D", 32); //2209
     for (int i = 0; i <= 200; i++) {
-        digitalWrite(DEC_DIR, STP_FWD);
+        digitalWrite(DEC_DIR, STP_BACK); // inverted for 2209
         PIOC->PIO_SODR = (1u << 24);
         delay(200 / i);
         PIOC->PIO_CODR = (1u << 24);
         DEC_microSteps -= DEC_mode_steps;
     }
     for (int i = 0; i <= 20; i++) {
-        digitalWrite(DEC_DIR, STP_FWD);
+        digitalWrite(DEC_DIR, STP_BACK); // inverted for 2209
         PIOC->PIO_SODR = (1u << 24);
         delay(2 * i);
         PIOC->PIO_CODR = (1u << 24);
@@ -337,18 +337,18 @@ if (strcmp(BT_COMMAND_STR, ":Mn") == 0) {
 }
 
 if (strcmp(BT_COMMAND_STR, ":Mw") == 0) {
-    setmStepsMode("R", 8);
+    setmStepsMode("R", 32); //2209
     if (IS_TRACKING == true) { Timer3.stop(); }
     
     for (int i = 0; i <= 200; i++) {
-        digitalWrite(RA_DIR, STP_FWD);
+        digitalWrite(RA_DIR, STP_BACK); // inverted for 2209 
         PIOC->PIO_SODR = (1u << 26);
         delay(200 / i);
         PIOC->PIO_CODR = (1u << 26);
         RA_microSteps -= RA_mode_steps;
     }
     for (int i = 0; i <= 15; i++) {
-        digitalWrite(RA_DIR, STP_FWD);
+        digitalWrite(RA_DIR, STP_BACK); // inverted for 2209
         PIOC->PIO_SODR = (1u << 26);
         delay(2 * i);
         PIOC->PIO_CODR = (1u << 26);
@@ -368,18 +368,18 @@ if (strcmp(BT_COMMAND_STR, ":Mw") == 0) {
 }
 
 if (strcmp(BT_COMMAND_STR, ":Me") == 0) {
-    setmStepsMode("R", 8);
+    setmStepsMode("R", 32); //2209
     if (IS_TRACKING == true) { Timer3.stop(); }
     
     for (int i = 0; i <= 200; i++) {
-        digitalWrite(RA_DIR, STP_BACK);
+        digitalWrite(RA_DIR, STP_FWD); // inverted for 2209
         PIOC->PIO_SODR = (1u << 26);
         delay(200 / i);
         PIOC->PIO_CODR = (1u << 26);
         RA_microSteps += RA_mode_steps;
     }
     for (int i = 0; i <= 15; i++) {
-        digitalWrite(RA_DIR, STP_BACK);
+        digitalWrite(RA_DIR, STP_FWD); // inverted for 2209
         PIOC->PIO_SODR = (1u << 26);
         delay(2 * i);
         PIOC->PIO_CODR = (1u << 26);

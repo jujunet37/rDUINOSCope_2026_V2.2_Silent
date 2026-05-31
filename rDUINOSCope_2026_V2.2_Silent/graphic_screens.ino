@@ -1819,7 +1819,7 @@ for (int i = 0; i < 5; i++) {
             ll++;
             continue;
         }
-        
+
         // Find separators
         char* i1 = strchr(OBJ_Array[ll], ';');
         char* i2 = (i1 != NULL) ? strchr(i1 + 1, ';') : NULL;
@@ -1854,7 +1854,7 @@ for (int i = 0; i < 5; i++) {
             strncpy(MAG_NAME, i5 + 1, i6 - i5 - 1);
             MAG_NAME[i6 - i5 - 1] = '\0';
         }
-        
+
         DrawButton(((j * 75) + 12), ((i * 50) + 160), 71, 45, M_NAME, messie_btn, 0, l_text, 1, true);
         
         tft.setTextScale(1);

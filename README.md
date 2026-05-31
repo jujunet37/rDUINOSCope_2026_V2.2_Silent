@@ -1,8 +1,43 @@
+# Update 24/05/2026 : rDUINOScope\_2026\_V2.2\_Silent
+
+# 
+
+## This is a modified version of the 10 April 2020 version of the rDUINOScope by Khairey Nouhe that works with Adafruit 3.5" 320X480 TFT SPI mode.
+
+
+
+### New features :
+
+
+
+* This new version need a hardware modification. It uses TMC2209 instead of DRV8825, which make the motors much more quiter.
+* Joystick re-leveling, addition of very low speed manual mode.
+* Modification of Timer periodRA and DEC for motor speeds in GOTO for these new drivers.
+* Reversing motor polarity for rotation in the correct direction for these new drivers.
+* Microstepping sequence moved from 1-2-4-8-16 to 8-4-16-32 for compatibility with these new drivers.
+* Review of deceleration mode
+* Bug fix : displayed the chain of the previous pointed-to object when loaded an object from bright star catalog : corrected.
+
+
+
+#### 
+
+# HARDWARE REQUIREMENT :
+
+
+
+Wire as shown in the diagram.
+
+- Let the unused pins unplugged, and put a wire to supply the 3.3V pin from the Arduino source.
+- Set the drivers to 1.5V.
+To set the drivers : Measure the voltage between VREF and GND with no motors plugged, and adjust voltage with the screw.
+---
+
+# 
+
 # Update 28/03/2026 : rDUINOScope\_2026\_V2.1\_ASCOM
 
 
-
-## This is a modified version of the 10 April 2020 version of the rDUINOScope by Khairey Nouhe that works with Adafruit 3.5" 320X480 TFT SPI mode.
 
 
 

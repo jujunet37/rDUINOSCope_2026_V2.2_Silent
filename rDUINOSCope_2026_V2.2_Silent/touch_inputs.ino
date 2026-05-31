@@ -1828,7 +1828,7 @@ if (last_button == 22) {
             tft.setTextColor(title_bg);
             tft.print(OBJECT_NAME);
             //OnScreenMsg(2);
-            setmStepsMode("R", 1);
+            setmStepsMode("R", 8); //2209
             Timer3.stop(); //
             sendTrackingStatus();
           }
