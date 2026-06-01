@@ -36,6 +36,8 @@
 //    * CURRENT_SCREEN==13  - drawConstelationScreen(int indx) - to actually align on Star. Called few times per alignment procedure.
 //    * CURRENT_SCREEN==14  - drawAutoGuidingScreen();
 //    * CURRENT_SCREEN==15  - confirm_sun_track()
+//    * CURRENT_SCREEN==16 - drawSearchScreen() ;
+//    * CURRENT_SCREEN==17 - SCREEN_LOAD_MENU ()
 //
 //  - Please note, that Touches are separated in 2 section to capture OnPress && OnRelease!
 //    You will notice that "if (lx > 0 && ly > 0 )" this part defines OnPress activities.
@@ -588,7 +590,7 @@ else if (CURRENT_SCREEN == 4)
 }
 
 /////////////////////////////////////////////// Load Menu Screen Touch Actions /////////////////////////////////////////////////////////
-else if (CURRENT_SCREEN == SCREEN_LOAD_MENU) 
+else if (CURRENT_SCREEN == 17) 
 {
     // Load/Search/Back menu management
     if (lx > 60 && lx < 260) {
@@ -614,7 +616,7 @@ else if (CURRENT_SCREEN == SCREEN_LOAD_MENU)
 }
 
 /////////////////////////////////////////////// Search Object Screen Touch Actions /////////////////////////////////////////////////////////
-else if (CURRENT_SCREEN == SCREEN_SEARCH_OBJECT) 
+else if (CURRENT_SCREEN == 16) 
 {
     // Button Back
     if (lx > 265 && lx < 320 && ly > 0 && ly < 45) {

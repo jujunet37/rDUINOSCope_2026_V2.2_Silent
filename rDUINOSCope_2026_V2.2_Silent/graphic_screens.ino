@@ -39,6 +39,8 @@
 //    * CURRENT_SCREEN==12  - drawStarSyncScreen() - To Select Alignment Star;
 //    * CURRENT_SCREEN==13  - drawConstelationScreen(int indx) - to actually align on Star. Called few times per alignment procedure.
 //    * CURRENT_SCREEN==14  - drawAutoGuidingScreen();
+//    * CURRENT_SCREEN==16 - drawSearchScreen() ;
+//    * CURRENT_SCREEN==17 - SCREEN_LOAD_MENU ()
 //
 
 void removeTime_addXX() {
@@ -1011,9 +1013,9 @@ void considerDayNightMode() {
       drawConstelationScreen(0);
     } else if (CURRENT_SCREEN == 14) {
       drawAutoGuidingScreen();
-    } else if (CURRENT_SCREEN == SCREEN_LOAD_MENU) {
+    } else if (CURRENT_SCREEN == 17) {
       drawLoadMenu();
-    } else if (CURRENT_SCREEN == SCREEN_SEARCH_OBJECT) {
+    } else if (CURRENT_SCREEN == 16) {
       drawSearchScreen();
     }
   }

@@ -3255,7 +3255,7 @@ void handlePagerWithTwoFiles(int& pager, int fileThreshold, const char* file1, c
 /////////////////////////////// NEW MENU WITH SEARCH ENGINE //////////////////
 
 void drawLoadMenu() {
-  CURRENT_SCREEN = SCREEN_LOAD_MENU;
+  CURRENT_SCREEN = 17; // bug found by Khairey
   tft.fillScreen(BLACK);
   
   // Background
@@ -3311,7 +3311,7 @@ void drawLoadMenu() {
 }
 
 void drawSearchScreen() {
-    CURRENT_SCREEN = SCREEN_SEARCH_OBJECT;
+    CURRENT_SCREEN = 16; // Bug found by Khairey
     tft.fillScreen(BLACK);
     
     // Background
