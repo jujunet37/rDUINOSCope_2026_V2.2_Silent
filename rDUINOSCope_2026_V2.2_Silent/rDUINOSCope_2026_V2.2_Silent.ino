@@ -45,7 +45,7 @@ char textBuff[20];
 #define use_battery_level // comment out to deactivate battery level option
 
 //// New search engine screen feature
-#define SCREEN_LOAD_MENU 15
+#define SCREEN_LOAD_MENU 17
 #define SCREEN_SEARCH_OBJECT 16
 // Button types
 #define BUTTON_PRIMARY 0
